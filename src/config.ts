@@ -7,11 +7,16 @@ export const config = {
     token: 'YOUR_BOT_TOKEN',
     applicationId: 'YOUR_APP_ID',
 
-    // Test Server
     guildId: 'YOUR_GUILD_ID',
     suggestionChannelId: 'YOUR_SUGGESTION_CHANNEL_ID',
     suggestionsManageRoleId: 'YOUR_SUGGESTION_MANAGER_ROLE',
     nukeRoleId: 'YOUR_NUKE_ROLE',
+
+    dbHost: 'localhost',
+    dbPort: 5432,
+    dbName: 'overseer',
+    dbUser: 'overseer',
+    dbPassword: '',
 }
 
 export const modules: Module[] = [
