@@ -1,0 +1,25 @@
+{
+  "name": "overseer",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && node dist/index.js",
+    "setup": "npm run build && node dist/setup.js",
+    "update": "npm run build && node dist/update.js"
+  },
+  "author": "Luis Michaelis",
+  "license": "LGPL-3.0-only",
+  "dependencies": {
+    "@discordjs/rest": "^0.2.0-canary.0",
+    "discord-api-types": "^0.26.1",
+    "discord.js": "^13.6.0",
+    "pg": "^8.7.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.6.4",
+    "eslint": "^8.7.0",
+    "typescript": "^4.5.5"
+  }
+}
