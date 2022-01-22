@@ -99,6 +99,25 @@ const suggestionCommand = new SlashCommandBuilder()
         )
     )
     .addSubcommand(sub => sub
+        .setName('edit')
+        .setDescription('Edit your suggestions title and/or text.')
+        .addIntegerOption(opt => opt
+            .setName('id')
+            .setDescription('The ID of the suggestion to edit')
+            .setRequired(true)
+        )
+        .addStringOption(opt => opt
+            .setName('title')
+            .setDescription('Edit the title of the suggestion')
+            .setRequired(false)
+        )
+        .addStringOption(opt => opt
+            .setName('description')
+            .setDescription('Edit the description of the suggestion')
+            .setRequired(false)
+        )
+    )
+    .addSubcommand(sub => sub
         .setName('list')
         .setDescription('List open suggestions.')
     )
@@ -508,6 +527,120 @@ export class SuggestionsModule extends Module {
         await interaction.update({embeds: [embed]})
     }
 
+    private async onEdit(interaction: CommandInteraction) {
+        const id = interaction.options.getInteger('id')!!;
+        const title = interaction.options.getString('title');
+        const description = interaction.options.getString('description');
+
+        // Grab the suggestion from the database.
+        const suggestion = await this.byId(id);
+        if (suggestion == null) {
+            await interaction.editReply({
+                embeds: [{
+                    title: ':no_entry_sign: Not found',
+                    description: `There is no suggestion #${id}.`,
+                    color: ERROR_COLOR,
+                    timestamp: Date.now()
+                }]
+            })
+            return;
+        }
+
+        // Check that the sending user is also the author of the suggestion
+        if (suggestion.author != interaction.user.id) {
+            await interaction.editReply({
+                embeds: [{
+                    title: ':no_entry_sign: No Permission',
+                    description: `You may only edit your own suggestions.`,
+                    color: ERROR_COLOR,
+                    timestamp: Date.now()
+                }]
+            })
+            return;
+        }
+
+        // Check that it is in the `Open` state
+        if (suggestion.status != SuggestionStatus.OPEN) {
+            await interaction.editReply({
+                embeds: [{
+                    title: ':no_entry_sign: No Permission',
+                    description: `You may only edit suggestions which are currently **Open**.`,
+                    color: ERROR_COLOR,
+                    timestamp: Date.now()
+                }]
+            })
+            return;
+        }
+
+        // Alter the message
+        if (title !== null && description !== null) {
+            await this.db.query(`UPDATE suggestions
+                                 SET title=$1,
+                                     description=$2
+                                 WHERE id = $3`, [
+                title, description, id
+            ]);
+        } else if (title !== null) {
+            await this.db.query(`UPDATE suggestions
+                                 SET title=$1
+                                 WHERE id = $2`, [title, id]);
+        } else if (description !== null) {
+            await this.db.query(`UPDATE suggestions
+                                 SET description=$1
+                                 WHERE id = $2`, [
+                description, id
+            ]);
+        } else {
+            await interaction.editReply({
+                embeds: [{
+                    title: ':no_entry_sign: Invalid usage',
+                    description: `Please provide at least one of \`title\` and \`description\`.`,
+                    color: ERROR_COLOR,
+                    timestamp: Date.now()
+                }]
+            })
+            return;
+        }
+
+        // Edit the message
+        const message = await this.suggestionChannel.messages.fetch(suggestion.message);
+        const embed = message.embeds[0]!!;
+
+        if (description) embed.description = description;
+        if (title) embed.title = title;
+
+        await message.edit({embeds: [embed]});
+
+        // Notify all participants
+        await message.thread?.send({
+            embeds: [{
+                title: 'Suggestion edited',
+                description: `The suggestion has be edited by ${interaction.user.tag}.`,
+                timestamp: Date.now(),
+                color: 0xffffff
+            }]
+        })
+
+        // Finally, reply to the user
+        await interaction.editReply({
+            components: [{
+                type: MessageComponentTypes.ACTION_ROW,
+                components: [{
+                    type: MessageComponentTypes.BUTTON,
+                    style: MessageButtonStyles.LINK,
+                    label: 'See suggestion',
+                    url: message.url
+                }]
+            }],
+            embeds: [{
+                title: ':white_check_mark: Suggestion edited',
+                description: `You have successfully edited your suggestion (#${id}). You can discuss it here: <#${message.thread?.id}>`,
+                timestamp: Date.now(),
+                color: SUCCESS_COLOR
+            }]
+        });
+    }
+
     private async onManage(interaction: CommandInteraction) {
         const command = interaction.options.getSubcommand();
         await interaction.deferReply({ephemeral: true});
@@ -521,6 +654,9 @@ export class SuggestionsModule extends Module {
                 break;
             case 'delete':
                 await this.onDelete(interaction);
+                break;
+            case 'edit':
+                await this.onEdit(interaction);
                 break;
             case 'list':
                 await this.onList(interaction);
