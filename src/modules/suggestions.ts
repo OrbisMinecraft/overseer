@@ -153,6 +153,20 @@ export class SuggestionsModule extends Module {
         const title = interaction.options.getString('title')!!;
         const description = interaction.options.getString('description')!!;
 
+        // Save the suggestion
+        const suggestion_id: number = (await this.db.query(
+            `INSERT INTO suggestions(title, description, author, status, votes_for, votes_against, votes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING id`, [
+                title,
+                description,
+                interaction.user.id,
+                SuggestionStatus.OPEN,
+                1,
+                0,
+                {[interaction.user.id]: true}
+            ])).rows[0].id
+
         // Post the suggestion
         const status = suggestionStatuses[SuggestionStatus.OPEN];
         const message = await this.suggestionChannel.send({
@@ -164,7 +178,7 @@ export class SuggestionsModule extends Module {
                     {name: 'Status:', value: `${status.emoji} ${status.name}`, inline: true},
                     {name: 'Upvotes:', value: '1', inline: true},
                     {name: 'Downvotes:', value: '0', inline: true},
-                    {name: 'ID:', value: '?', inline: false},
+                    {name: 'ID:', value: suggestion_id.toString(), inline: false},
                 ],
                 footer: {
                     text: `by ${interaction.user.username}`,
@@ -198,20 +212,7 @@ export class SuggestionsModule extends Module {
             allowedMentions: {parse: []}  // disallow all mentions
         });
 
-        // Save the suggestion
-        const suggestion_id: number = (await this.db.query(
-            `INSERT INTO suggestions(message, title, description, author, status, votes_for, votes_against, votes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             RETURNING id`, [
-                message.id,
-                title,
-                description,
-                interaction.user.id,
-                SuggestionStatus.OPEN,
-                1,
-                0,
-                {[interaction.user.id]: true}
-            ])).rows[0].id
+        await this.db.query('UPDATE suggestions SET message=$1 WHERE id=$2', [message.id, suggestion_id]);
 
         // Create a thread for the suggestion
         const thread = await message.startThread({
@@ -226,10 +227,6 @@ export class SuggestionsModule extends Module {
             allowedMentions: {users: [interaction.user.id]}
         })
         await pingMsg.delete();
-
-        // Update the message with the proper ID
-        message.embeds[0].fields[3].value = suggestion_id.toString();
-        await message.edit({embeds: [message.embeds[0]]});
 
         // Finally, reply to the user
         await interaction.editReply({
