@@ -338,7 +338,7 @@ export class SuggestionsModule extends Module {
         await message.thread?.send({
             embeds: [{
                 title: 'Status changed',
-                description: `The status of this suggestion changed to **${statusCfg.name}.**`,
+                description: `The status of this suggestion was changed to **${statusCfg.name}** by <@${interaction.user.id}>.`,
                 timestamp: Date.now(),
                 color: statusCfg.color
             }]
