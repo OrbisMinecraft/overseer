@@ -383,7 +383,30 @@ export class SuggestionsModule extends Module {
 
         // Check whether the user has the proper permission
         const userRoles = interaction.member?.roles as GuildMemberRoleManager;
-        if (!userRoles.cache.has(this.managerRoleId) && interaction.user.id != suggestion.author) {
+        if (!userRoles.cache.has(this.managerRoleId)) {
+            // If it's the author of the message, instead of deleting it, post a message for a moderator to delete it
+            if (interaction.user.id == suggestion.author) {
+                const msg = await this.suggestionChannel.messages.fetch(suggestion.message);
+                msg.thread?.send({
+                    embeds: [{
+                        title: ':exclamation: Deletion Request',
+                        description: `<@${interaction.user.id}> has requested the deletion of this suggestion by <@&${this.managerRoleId}>.`,
+                        timestamp: Date.now(),
+                        color: ERROR_COLOR
+                    }]
+                })
+
+                await interaction.editReply({
+                    embeds: [{
+                        title: ':white_check_mark: Deletion Requested',
+                        description: `You have requested the deletion of your suggestion.`,
+                        color: SUCCESS_COLOR,
+                        timestamp: Date.now()
+                    }]
+                })
+                return;
+            }
+
             await interaction.editReply({
                 embeds: [{
                     title: ':no_entry_sign: Forbidden',
