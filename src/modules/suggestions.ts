@@ -63,12 +63,13 @@ const suggestionCommand = new SlashCommandBuilder()
             .setName('status')
             .setDescription('The status to set')
             .setRequired(true)
-            .addChoice(suggestionStatuses[SuggestionStatus.OPEN].name, SuggestionStatus.OPEN)
-            .addChoice(suggestionStatuses[SuggestionStatus.CONSIDERED].name, SuggestionStatus.CONSIDERED)
-            .addChoice(suggestionStatuses[SuggestionStatus.APPROVED].name, SuggestionStatus.APPROVED)
-            .addChoice(suggestionStatuses[SuggestionStatus.IMPLEMENTED].name, SuggestionStatus.IMPLEMENTED)
-            .addChoice(suggestionStatuses[SuggestionStatus.DENIED].name, SuggestionStatus.DENIED)
-            .addChoice(suggestionStatuses[SuggestionStatus.INVALID].name, SuggestionStatus.INVALID)
+            .addChoices(
+                {name: suggestionStatuses[SuggestionStatus.OPEN].name, value: SuggestionStatus.OPEN},
+                {name: suggestionStatuses[SuggestionStatus.CONSIDERED].name, value: SuggestionStatus.CONSIDERED},
+                {name: suggestionStatuses[SuggestionStatus.APPROVED].name, value: SuggestionStatus.APPROVED},
+                {name: suggestionStatuses[SuggestionStatus.IMPLEMENTED].name, value: SuggestionStatus.IMPLEMENTED},
+                {name: suggestionStatuses[SuggestionStatus.DENIED].name, value: SuggestionStatus.DENIED},
+                {name: suggestionStatuses[SuggestionStatus.INVALID].name, value: SuggestionStatus.INVALID})
         )
         .addStringOption(opt => opt
             .setName('message')
@@ -175,8 +176,7 @@ export class SuggestionsModule extends Module {
         // Save the suggestion
         const suggestion_id: number = (await this.db.query(
             `INSERT INTO suggestions(title, description, author, status, votes_for, votes_against, votes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING id`, [
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, [
                 title,
                 description,
                 interaction.user.id,
